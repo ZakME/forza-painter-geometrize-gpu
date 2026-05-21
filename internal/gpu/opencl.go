@@ -78,7 +78,7 @@ type Evaluator struct {
 	applyKernel *cl.Kernel
 	gridKernel  *cl.Kernel
 
-	targetImage   *cl.MemObject
+	targetBuffer  *cl.MemObject
 	currentBuffer *cl.MemObject
 	maskBuffer    *cl.MemObject
 
@@ -263,8 +263,8 @@ func NewEvaluator(target, current []float32, mask []uint8, width, height int, ma
 		if e.currentBuffer != nil {
 			e.currentBuffer.Release()
 		}
-		if e.targetImage != nil {
-			e.targetImage.Release()
+		if e.targetBuffer != nil {
+			e.targetBuffer.Release()
 		}
 		gridKernel.Release()
 		applyKernel.Release()
@@ -274,11 +274,7 @@ func NewEvaluator(target, current []float32, mask []uint8, width, height int, ma
 		ctx.Release()
 	}
 
-	// Allocate target as a read-only image2d to leverage GPU texture cache
-	// for hardware-accelerated 2D sampling in evaluate / error_grid kernels.
-	// Current stays as a buffer because apply_candidate_v2 needs read-write access.
-	targetBytes := unsafe.Slice((*byte)(unsafe.Pointer(&target[0])), len(target)*4)
-	if e.targetImage, err = ctx.CreateImageSimple(cl.MemReadOnly|cl.MemCopyHostPtr, width, height, cl.ChannelOrderRGBA, cl.ChannelDataTypeFloat, targetBytes); err != nil {
+	if e.targetBuffer, err = ctx.CreateEmptyBuffer(cl.MemReadOnly, len(target)*4); err != nil {
 		cleanup()
 		return nil, err
 	}
@@ -320,7 +316,12 @@ func NewEvaluator(target, current []float32, mask []uint8, width, height int, ma
 	// useful to do until the buffers are resident anyway. We still release
 	// the returned events explicitly so the OpenCL runtime can free them
 	// promptly instead of waiting for the Go finalizer to run.
-	// targetImage was already populated via CreateImageSimple above.
+	if evt, err := queue.EnqueueWriteBufferFloat32(e.targetBuffer, true, 0, target, nil); err != nil {
+		cleanup()
+		return nil, err
+	} else if evt != nil {
+		evt.Release()
+	}
 	if evt, err := queue.EnqueueWriteBufferFloat32(e.currentBuffer, true, 0, current, nil); err != nil {
 		cleanup()
 		return nil, err
@@ -361,8 +362,8 @@ func (e *Evaluator) Close() {
 	if e.currentBuffer != nil {
 		e.currentBuffer.Release()
 	}
-	if e.targetImage != nil {
-		e.targetImage.Release()
+	if e.targetBuffer != nil {
+		e.targetBuffer.Release()
 	}
 	if e.gridKernel != nil {
 		e.gridKernel.Release()
@@ -461,7 +462,7 @@ func (e *Evaluator) SubmitEval(cands []model.Candidate) (EvalTicket, error) {
 	writeEvt.Release()
 
 	if err := e.evalKernel.SetArgs(
-		e.targetImage,
+		e.targetBuffer,
 		e.currentBuffer,
 		e.maskBuffer,
 		e.candBuffers[slot],
@@ -643,7 +644,7 @@ func (e *Evaluator) SubmitErrorGrid() (GridTicket, error) {
 	}
 
 	if err := e.gridKernel.SetArgs(
-		e.targetImage,
+		e.targetBuffer,
 		e.currentBuffer,
 		e.maskBuffer,
 		e.errorGridBufs[slot],
