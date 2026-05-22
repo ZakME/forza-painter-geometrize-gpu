@@ -65,45 +65,45 @@ func Run(opts Options) error {
 		maxBatch = cfg.MutatedSamples
 	}
 	evaluator, err := gpu.NewEvaluator(prepared.Target, prepared.Current, prepared.OpaqueMask, prepared.Width, prepared.Height, maxBatch)
-	fmt.Println("")
+	// fmt.Println("")
 
-	fmt.Println("=== Progressive Sampling ===")
+	// fmt.Println("=== Progressive Sampling ===")
 
-	fmt.Printf(
-		"Enabled: %v\n",
-		cfg.EnableProgressiveSampling,
-	)
+	// fmt.Printf(
+	// 	"Enabled: %v\n",
+	// 	cfg.EnableProgressiveSampling,
+	// )
 
-	fmt.Printf(
-		"Start Step: %d\n",
-		cfg.ProgressiveSamplingStart,
-	)
+	// fmt.Printf(
+	// 	"Start Step: %d\n",
+	// 	cfg.ProgressiveSamplingStart,
+	// )
 
-	fmt.Printf(
-		"End Step: %d\n",
-		cfg.ProgressiveSamplingEnd,
-	)
+	// fmt.Printf(
+	// 	"End Step: %d\n",
+	// 	cfg.ProgressiveSamplingEnd,
+	// )
 
-	fmt.Printf(
-		"Transition: %.3f\n",
-		cfg.ProgressiveSamplingTransition,
-	)
+	// fmt.Printf(
+	// 	"Transition: %.3f\n",
+	// 	cfg.ProgressiveSamplingTransition,
+	// )
 
-	fmt.Printf(
-		"Curve: %.2f\n",
-		cfg.ProgressiveSamplingCurve,
-	)
+	// fmt.Printf(
+	// 	"Curve: %.2f\n",
+	// 	cfg.ProgressiveSamplingCurve,
+	// )
 
-	maxReduction := cfg.ProgressiveSamplingStart *
-		cfg.ProgressiveSamplingStart
+	// maxReduction := cfg.ProgressiveSamplingStart *
+	// 	cfg.ProgressiveSamplingStart
 
-	fmt.Printf(
-		"Max Pixel Reduction: 1/%d\n",
-		maxReduction,
-	)
-	if err != nil {
-		return err
-	}
+	// fmt.Printf(
+	// 	"Max Pixel Reduction: 1/%d\n",
+	// 	maxReduction,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
 	evaluator.UseWorkGroupEval = cfg.UseWorkGroupEval
 	defer evaluator.Close()
 
@@ -154,8 +154,8 @@ func Run(opts Options) error {
 
 		evaluator.SampleStep = scoringSampleStep(cfg, progress)
 
-		fmt.Printf("[%d/%d] Scoring sample step: %d\n",
-			step, cfg.StopAt, evaluator.SampleStep)
+		// fmt.Printf("[%d/%d] Scoring sample step: %d\n",
+		// 	step, cfg.StopAt, evaluator.SampleStep)
 
 		randomCands := randomCandidates(rng, prepared, cfg.RandomSamples, cfg.ForceOpaqueShapes, sampler, progress)
 
